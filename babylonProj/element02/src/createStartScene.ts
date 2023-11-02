@@ -15,7 +15,7 @@ import {
   
   function createBox(scene: Scene) {
     let box = MeshBuilder.CreateBox("box",{size: 7}, scene);
-    box.position.y = 13;
+    box.position.y = 7;
     return box;
   }
 

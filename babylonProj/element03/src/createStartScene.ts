@@ -1,5 +1,8 @@
 //----------------------Ross-Lamont-------------------------------
 //TOP OF CODE - IMPORTING BABYLONJS
+const esbuildConfig = {
+  target: 'esnext',
+};
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import {

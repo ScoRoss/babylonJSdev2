@@ -149,22 +149,26 @@ import {
     const boxAggregate = new PhysicsAggregate(box, PhysicsShapeType.SPHERE, { mass: 1 }, scene);
     return box;
   }
-  function createGoalPost(scene: Scene, x: number, y: number, z: number){
-    // creating main pole to be static and giving it collision this is the main pole
-    let pole = MeshBuilder.CreateCylinder("goalpole",{height:4, diameter: 0.2}, scene);
-    pole.position = new Vector3(x,y+2,z);
+  function createGoalPost(scene: Scene, x: number, y: number, z: number, distanceBetweenPosts: number) {
+    // Create the main pole on the left
+    let leftPole = MeshBuilder.CreateCylinder("goalPostLeftPole", { height: 4, diameter: 0.2 }, scene);
+    leftPole.position = new Vector3(x - distanceBetweenPosts / 2, y + 2, z);
 
-    //creating the crossbar to go over both the poles.
-    let crossbar=MeshBuilder.CreateBox("goalpostcrossbar",{size:2, width:0.1},scene);
-    crossbar.position= new Vector3(x,y+4,z);
+    // Create the main pole on the right
+    let rightPole = MeshBuilder.CreateCylinder("goalPostRightPole", { height: 4, diameter: 0.2 }, scene);
+    rightPole.position = new Vector3(x + distanceBetweenPosts / 2, y + 2, z);
 
-    // goalpost physics! the fun part
-    const poleAggregate= new PhysicsAggregate(pole, PhysicsShapeType.CYLINDER,{mass:0}, scene);
-    const crossbarAggregate = new PhysicsAggregate(crossbar, PhysicsShapeType.BOX, { mass: 0 }, scene);
-    // getting the return
+    // Create the crossbar
+    let crossbar = MeshBuilder.CreateCylinder("goalPostCrossbar", { height: 0.1, diameter: distanceBetweenPosts }, scene);
+    crossbar.position = new Vector3(x, y + 4, z);
 
-    return{pole, crossbar};
-  }
+    // Create the goal post physics
+    const leftPoleAggregate = new PhysicsAggregate(leftPole, PhysicsShapeType.CYLINDER, { mass: 0 }, scene);
+    const rightPoleAggregate = new PhysicsAggregate(rightPole, PhysicsShapeType.CYLINDER, { mass: 0 }, scene);
+    const crossbarAggregate = new PhysicsAggregate(crossbar, PhysicsShapeType.CYLINDER, { mass: 0 }, scene);
+
+    return { leftPole, rightPole, crossbar };
+}
     
   function createGround(scene: Scene) {
     const ground: Mesh = MeshBuilder.CreateGround("ground", {height: 10, width: 10, subdivisions: 4});
@@ -284,8 +288,10 @@ import {
     that.importMesh = importPlayerMesh(that.scene, that.box, 0, 0);
     that.actionManager = actionManager(that.scene);
     that.skybox = createSkybox(that.scene);
-    const goalPosts = createGoalPost(that.scene, 0, 0, -5);
-    that.pole = goalPosts.pole;
+    const goalPosts = createGoalPost(that.scene, 0, 0, -5, 4); // Adjust 4 to the desired distance
+
+    
+
     that.crossbar = goalPosts.crossbar;
     
     //Scene Lighting & Camera

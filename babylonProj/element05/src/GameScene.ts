@@ -1,4 +1,6 @@
 //-----------------------------------------------------
+import setSceneIndex from "./index";
+//Ross Lamont
 //TOP OF CODE - IMPORTING BABYLONJS
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -31,6 +33,9 @@ import {
   } from "@babylonjs/core";
   import HavokPhysics from "@babylonjs/havok";
   import { HavokPlugin, PhysicsAggregate, PhysicsShapeType } from "@babylonjs/core";
+  import { AdvancedDynamicTexture, Button } from "@babylonjs/gui/2D";
+
+  let sceneData;
   //----------------------------------------------------
   
   //----------------------------------------------------
@@ -47,6 +52,7 @@ import {
   //-----------------------------------------------------
 
   //MIDDLE OF CODE - FUNCTIONS
+  let score = 0;
   let keyDownMap: any[] = [];
   let currentSpeed: number = 0.1;
   let walkingSpeed: number = 0.1;
@@ -134,9 +140,7 @@ import {
             animating = false;
             isPlaying = false;
           }
-          // if (!animating && !keydown) {
-          //   idleAnim = scene.beginWeightedAnimation(skeleton, idleRange.from, idleRange.to, 1.0, true);
-          // }
+
         }
 
         //collision
@@ -153,7 +157,22 @@ import {
     });
     return item;
   }
+  // GOAL POST 
+function createGoalpost(scene: Scene, position: Vector3): Mesh {
+    const goalpostHeight = 2;
+    const goalpostWidth = 0.1;
+    const goalpostColor = new Color3(1, 1, 1); // Adjust color as needed
 
+    const goalpost = MeshBuilder.CreateBox("goalpost", { height: goalpostHeight, width: goalpostWidth, depth: goalpostWidth }, scene);
+    goalpost.position = position;
+    goalpost.material = new StandardMaterial("goalpostMaterial", scene);
+    goalpost.material.diffuseColor = goalpostColor;
+
+    // Add physics to the goalpost if needed
+    const goalpostPhysics = new PhysicsAggregate(goalpost, PhysicsShapeType.BOX, { mass: 0 }, scene);
+
+    return goalpost;
+}
   function actionManager(scene: Scene){
     scene.actionManager = new ActionManager(scene);
 
@@ -176,21 +195,22 @@ import {
     );
     return scene.actionManager;
   } 
-
+// BALL TO KICK INTO GOAL 
   function createSphere(scene: Scene, x: number, y: number, z: number, scale: number = 1) {
     const mat = new StandardMaterial("mat");
     const texture = new Texture("https://static.vecteezy.com/system/resources/thumbnails/007/686/503/small/black-and-white-panoramic-texture-football-background-ball-vector.jpg");
     mat.diffuseTexture = texture;
     let sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 * scale });
-    
+  
     sphere.position.x = x;
     sphere.position.y = y;
     sphere.position.z = z;
     sphere.material = mat;
     const sphereAggregate = new PhysicsAggregate(sphere, PhysicsShapeType.SPHERE, { mass: 1 }, scene);
+    
     return sphere;
   }
-    
+    // COPY OF PITCH PULLED OFFLINE AFTER MY FIRST ATTEMPT FELL TO BITS 
   function createGround(scene: Scene, size: number = 10, width: number = 10, rotationAngle: number = 0) {
     const groundMat = new StandardMaterial("groundMat");
     groundMat.diffuseTexture = new Texture("https://t4.ftcdn.net/jpg/04/40/51/03/360_F_440510369_R1T9gwH1ZkpSBCjYDg47X2AhfL0AOOWf.jpg");
@@ -281,18 +301,6 @@ function createFence4(scene: Scene) {
         const fence4Physics = new PhysicsAggregate(fence4, PhysicsShapeType.BOX, { mass: 0 }, scene);
 return fence4;
 }
-        
-    
-  
-   
-      
-    
-        // Enable physics for the fence
-        
-        
-        
-    
-  
 
 
   function createAnyLight(scene: Scene, index: number, px: number, py: number, pz: number, colX: number, colY: number, colZ: number, mesh: Mesh) {
@@ -327,8 +335,47 @@ return fence4;
     light.intensity = 0.8;
     return light;
   }
+// Function to create a reset button goes here 
 
-  //PREVIOUS METHODS
+function resetGame() {
+  // Reload the current scene
+  if (sceneData && sceneData.scene) {
+    // Dispose of the current scene and create a new one
+    sceneData.scene.dispose();
+ 
+
+    // Recreate the scene elements (add back your ground, sphere, lights, etc.)
+   
+
+    console.log("Game reset!");
+  }
+}
+
+function createResetButton(scene: Scene) {
+  const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+  const resetButton = Button.CreateSimpleButton("resetButton", "Reset Game");
+  resetButton.width = "150px";
+  resetButton.height = "40px";
+  resetButton.color = "white";
+  resetButton.background = "green";
+  resetButton.verticalAlignment = 0; // Top
+  resetButton.horizontalAlignment = 0; // Right
+  resetButton.paddingTop = "10px";
+  resetButton.paddingRight = "10px";
+
+  resetButton.onPointerUpObservable.add(() => {
+    // Call resetGame to reload the scene
+    resetGame();
+  });
+
+  guiTexture.addControl(resetButton);
+}
+
+
+
+//function for reset button end here 
+  //PREVIOUS METHODS SHADOWS STILL WONT WORK BECAUSE THIS IS STUPID 
   // function createSpotLight(scene: Scene, px: number, py: number, pz: number) {
   //   var light = new SpotLight("spotLight", new Vector3(-1, 1, -1), new Vector3(0, -1, 0), Math.PI / 2, 10, scene);
   //   light.diffuse = new Color3(0.39, 0.44, 0.91);
@@ -352,9 +399,12 @@ return fence4;
     camera.attachControl(true);
     return camera;
   }
-  //----------------------------------------------------------
   
   //----------------------------------------------------------
+// junk code for testing this house fire of a shit heap 
+  //----------------------------------------------------------
+
+
   //BOTTOM OF CODE - MAIN RENDERING AREA FOR YOUR SCENE
   export default function createStartScene(engine: Engine) {
     interface SceneData {
@@ -372,30 +422,74 @@ return fence4;
       hemisphericLight?: HemisphericLight;
       camera?: Camera;
     }
-  
+    sceneData = { scene: new Scene(engine) };
     let that: SceneData = { scene: new Scene(engine) };
     that.scene.debugLayer.show();
-    //initialise physics
+    // Initialise physics
     that.scene.enablePhysics(new Vector3(0, -9.8, 0), havokPlugin);
     //----------------------------------------------------------
-
-    //any further code goes here-----------
+  
     that.sphere = createSphere(that.scene, 2, 2, 2, 0.5);
     that.ground = createGround(that.scene, 15, 25, Math.PI / 2);
-
+  
+    that.ground.receiveShadows = true;
+  
     that.importMesh = importPlayerMesh(that.scene, that.sphere, 0, 0);
     that.actionManager = actionManager(that.scene);
+    const arenaWidth = 25; // Adjust this based on if you resize arena size
+  
+    const leftGoalpostPosition = new Vector3(-0.05 * arenaWidth, 1, -0.45 * arenaWidth);
+    const rightGoalpostPosition = new Vector3(0.05 * arenaWidth, 1, -0.45 * arenaWidth);
+  
+    const leftGoalpost = createGoalpost(that.scene, leftGoalpostPosition);
+    const rightGoalpost = createGoalpost(that.scene, rightGoalpostPosition);
+    let goalScored = false;
+  
+    // Check for goal between the posts
+    that.scene.onBeforeRenderObservable.add(() => {
+      if (that.sphere && !goalScored && isBallBetweenPosts(that.sphere, leftGoalpost, rightGoalpost)) {
+        goalScored = true;
+        showGoalPopup();
+      }
+    });
+  
+    // Function to check if the ball is between the goalposts
+    function isBallBetweenPosts(ball: Mesh, leftPost: Mesh, rightPost: Mesh): boolean {
+      return (
+        ball.position.x > leftPost.position.x &&
+        ball.position.x < rightPost.position.x &&
+        Math.abs(ball.position.z - leftPost.position.z) < 1
+      );
+    }
+  
+    // Function to show the goal popup
+    function showGoalPopup() {
+      // Adjust this part based on how you want to display the popup
+      alert("SCORE!!!!!! YA DANCER!!!");
+    }
+    
 
+  
+    
+    createResetButton(sceneData.scene);
+    sceneData = { scene: new Scene(engine) };
+    // resetButton.onPointerUpObservable.add(() => {
+    //   console.log("Button clicked!");
+    //   // Call your reset function here
+    //   resetGame();
+    // });
     that.skybox = createSkybox(that.scene);
-    //Scene Lighting & Camera
+    // Scene Lighting & Camera
     that.hemisphericLight = createHemiLight(that.scene);
     that.camera = createArcRotateCamera(that.scene);
-    
-    //fence
+  
+    // Fence
     that.fence1 = createFence1(that.scene);
     that.fence2 = createFence2(that.scene);
     that.fence3 = createFence3(that.scene);
     that.fence4 = createFence4(that.scene);
+  
     return that;
   }
   //----------------------------------------------------
+  

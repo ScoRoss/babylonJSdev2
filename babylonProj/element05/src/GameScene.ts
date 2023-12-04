@@ -34,8 +34,12 @@ import {
   import HavokPhysics from "@babylonjs/havok";
   import { HavokPlugin, PhysicsAggregate, PhysicsShapeType } from "@babylonjs/core";
   import { AdvancedDynamicTexture, Button } from "@babylonjs/gui/2D";
-
+  import { TextBlock } from "@babylonjs/gui";
+  import * as GUI from "@babylonjs/gui";
   let sceneData;
+  let score = 0;
+ 
+  let scoreText: TextBlock
   //----------------------------------------------------
   
   //----------------------------------------------------
@@ -44,6 +48,7 @@ import {
   HavokPhysics().then((havok) => {
     initializedHavok = havok;
   });
+  
 
   const havokInstance = await HavokPhysics();
   const havokPlugin = new HavokPlugin(true, havokInstance);
@@ -63,12 +68,12 @@ import {
   }
 
   //MIDDLE OF CODE - FUNCTIONS
-  let score = 0;
+  
   let keyDownMap: any[] = [];
   let currentSpeed: number = 0.1;
   let walkingSpeed: number = 0.1;
   let runningSpeed: number = 0.4;
-
+  
   function importPlayerMesh(scene: Scene, collider: Mesh, x: number, y: number) {
     let tempItem = { flag: false } 
     let item: any = SceneLoader.ImportMesh("", "./models/", "dummy3.babylon", scene, function(newMeshes, particleSystems, skeletons, animationGroups, ) {
@@ -79,18 +84,9 @@ import {
       skeleton.animationPropertiesOverride.blendingSpeed = 0.05;
       skeleton.animationPropertiesOverride.loopMode = 1; 
 
-      //adapted from: www.babylonjs-playground.com/#LL5BIQ#0
-      //another good playground for this is: www.babylonjs-playground.com/#AHQEIB#17
+
       let idleRange: any = skeleton.getAnimationRange("YBot_Idle");
       let walkRange: any = skeleton.getAnimationRange("YBot_Walk");
-      // let runRange: any = skeleton.getAnimationRange("YBot_Run");
-      //let leftRange: any = skeleton.getAnimationRange("YBot_LeftStrafeWalk");
-      //let rightRange: any = skeleton.getAnimationRange("YBot_RightStrafeWalk");
-
-      //MOVE THESE IF YOU WANT TO TRIGGER ANYWHERE
-      //let runAnim: any = scene.beginWeightedAnimation(skeleton, runRange.from, runRange.to, 1.0, true);
-      //let leftAnim: any = scene.beginWeightedAnimation(skeleton, leftRange.from, leftRange.to, 1.0, true);
-      //let rightAnim: any = scene.beginWeightedAnimation(skeleton, rightRange.from, rightRange.to, 1.0, true);
 
       //Speed and Rotation Variables
       let speed: number = 0.03;
@@ -106,30 +102,20 @@ import {
         let keydown: boolean = false;
         if (keyDownMap["w"] || keyDownMap["ArrowUp"]) {
           mesh.moveWithCollisions(mesh.forward.scaleInPlace(speed));                
-          //Previous code
-          //mesh.position.z += 0.01;
-          //mesh.rotation.y = 0;
           keydown = true;
         }
         if (keyDownMap["a"] || keyDownMap["ArrowLeft"]) {
           mesh.rotate(Vector3.Up(), -rotationSpeed);
-          //Previous code
-          //mesh.position.x -= 0.01;
-          //mesh.rotation.y = 3 * Math.PI / 2;
           keydown = true;
         }
         if (keyDownMap["s"] || keyDownMap["ArrowDown"]) {
           mesh.moveWithCollisions(mesh.forward.scaleInPlace(-speedBackward));
-          //Previous code
-          //mesh.position.z -= 0.01;
-          //mesh.rotation.y = 2 * Math.PI / 2;
+
           keydown = true;
         }
         if (keyDownMap["d"] || keyDownMap["ArrowRight"]) {
           mesh.rotate(Vector3.Up(), rotationSpeed);
-          //Previous code
-          //mesh.position.x += 0.01;
-          //mesh.rotation.y = Math.PI / 2;
+
           keydown = true;
         }
 
@@ -314,6 +300,8 @@ return fence4;
 }
 
 
+
+
   function createAnyLight(scene: Scene, index: number, px: number, py: number, pz: number, colX: number, colY: number, colZ: number, mesh: Mesh) {
     // only spotlight, point and directional can cast shadows in BabylonJS
     switch (index) {
@@ -346,9 +334,37 @@ return fence4;
     light.intensity = 0.8;
     return light;
   }
+
+
+
+// Function to increase the score
+
+
 // Function to create a reset button goes here 
+function createScoring(scene: Scene) {
+  const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
+  // Create the scoreText control
+  scoreText = new GUI.TextBlock();
+  scoreText.text = "Score: 0";
+  scoreText.color = "white";
+  scoreText.fontSize = 36;
+  scoreText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+  scoreText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+  scoreText.paddingTop = "20px";
+  scoreText.paddingRight = "20px";
 
+  // Add the scoreText control to the advanced texture
+  advancedTexture.addControl(scoreText);
+
+}
+
+  // Function to increase the score
+function increaseScore(scoreText: GUI.TextBlock): void {
+  score ++;
+  scoreText.text = "Score: " + score;
+  console.log('Score: ' + score);
+}
 
 function createResetButton(scene: Scene) {
   const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -375,7 +391,7 @@ function createResetButton(scene: Scene) {
 
 
 //function for reset button end here 
-  //PREVIOUS METHODS SHADOWS STILL WONT WORK BECAUSE THIS IS STUPID 
+  //PREVIOUS METHODS SHADOWS STILL WONT WORK 
   // function createSpotLight(scene: Scene, px: number, py: number, pz: number) {
   //   var light = new SpotLight("spotLight", new Vector3(-1, 1, -1), new Vector3(0, -1, 0), Math.PI / 2, 10, scene);
   //   light.diffuse = new Color3(0.39, 0.44, 0.91);
@@ -401,7 +417,7 @@ function createResetButton(scene: Scene) {
   }
   
   //----------------------------------------------------------
-// junk code for testing this house fire of a shit heap 
+
   //----------------------------------------------------------
 
 
@@ -412,6 +428,7 @@ function createResetButton(scene: Scene) {
       sphere?: Mesh;
       ground?: Mesh;
       fence1?: Mesh;
+      
       fence2?: Mesh;
       fence3?: Mesh;
       fence4?: Mesh;
@@ -441,7 +458,7 @@ function createResetButton(scene: Scene) {
     const leftGoalpostPosition = new Vector3(-0.05 * arenaWidth, 1, -0.45 * arenaWidth);
     const rightGoalpostPosition = new Vector3(0.05 * arenaWidth, 1, -0.45 * arenaWidth);
     
-  
+
     const leftGoalpost = createGoalpost(that.scene, leftGoalpostPosition);
     const rightGoalpost = createGoalpost(that.scene, rightGoalpostPosition);
     let goalScored = false;
@@ -457,14 +474,14 @@ function createResetButton(scene: Scene) {
     const newGoalpost2 = createGoalpost(that.scene, newGoalpost2Position);
   
     // Check for goal between the posts
+    
     that.scene.onBeforeRenderObservable.add(() => {
-      if (that.sphere && !goalScored && isBallBetweenPosts(that.sphere, leftGoalpost, rightGoalpost)) {
-        goalScored = true;
-        showGoalPopup();
-      }
-    });
-  
+  if (that.sphere && !goalScored && isBallBetweenPosts(that.sphere, leftGoalpost, rightGoalpost)) {
+    increaseScore(scoreText); // Pass the scoreText variable to the increaseScore function
+  }
+});
     // Function to check if the ball is between the goalposts
+    
     function isBallBetweenPosts(ball: Mesh, leftPost: Mesh, rightPost: Mesh): boolean {
       return (
         ball.position.x > leftPost.position.x &&
@@ -473,32 +490,27 @@ function createResetButton(scene: Scene) {
       );
     }
   
-    // Function to show the goal popup
-    function showGoalPopup() {
-      // Adjust this part based on how you want to display the popup
-      alert("SCORE!!!!!! YA DANCER!!!");
-    }
-    
-//GUI SCORE 
 
+
+//GUI SCORE 
+    const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    let scoring = createScoring(that.scene);
+
+    //------------------- other shit
     createResetButton(sceneData.scene);
     sceneData = { scene: new Scene(engine) };
-    // resetButton.onPointerUpObservable.add(() => {
-    //   console.log("Button clicked!");
-    //   // Call your reset function here
-    //   resetGame();
-    // });
     that.skybox = createSkybox(that.scene);
     // Scene Lighting & Camera
     that.hemisphericLight = createHemiLight(that.scene);
     that.camera = createArcRotateCamera(that.scene);
-  
+
+    
     // Fence
     that.fence1 = createFence1(that.scene);
     that.fence2 = createFence2(that.scene);
     that.fence3 = createFence3(that.scene);
     that.fence4 = createFence4(that.scene);
-  
+
     return that;
   }
   //----------------------------------------------------

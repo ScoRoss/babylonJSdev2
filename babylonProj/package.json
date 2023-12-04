@@ -4,22 +4,25 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "havok": "cp /workspaces/babylonJSdev/node_modules/@babylonjs/havok/lib/esm/HavokPhysics.wasm  /workspaces/babylonJSdev/babylonProj/node_modules/.vite/deps",
-    "element01build":"tsc && vite build element01",
-    "element01preview":"privew element01build", 
-    "element02build":"tsc && vite build element02",
-    "element02preview":"privew element02build",
-    "element03build":"tsc && vite build element03",
-    "element03preview":"privew element03build",
-    "element04build":"tsc && vite build element04",
-    "element04preview":"privew element04build"
+    "element01build": "tsc && vite build element01",
+    "element01preview": "privew element01build",
+    "element02build": "tsc && vite build element02",
+    "element02preview": "privew element02build",
+    "element03build": "tsc && vite build element03",
+    "element03preview": "privew element03build",
+    "element04build": "tsc && vite build element04",
+    "element04preview": "privew element04build"
   },
   "devDependencies": {
     "typescript": "^5.0.2",
     "vite": "^4.4.5"
+  },
+  "dependencies": {
+    "babylonjs": "^6.32.1",
+    "babylonjs-gui": "^6.32.1"
   }
 }

@@ -50,6 +50,17 @@ import {
 
   globalThis.HK = await HavokPhysics();
   //-----------------------------------------------------
+  function resetGame() {
+    // Reset the ball position
+    if (sceneData.sphere) {
+      sceneData.sphere.position = new Vector3(2, 2, 2); // Set the initial position
+    }
+    // MOVED CODE UP HERE BECAUSE MAKING IT GLOBAL WOULD HAVE MADE IT WORK IF IT WAS A THING THAT ACTUALLY WORKED EH ???? 
+    // Clear any goal-related flags
+    //goalScored = false;
+  
+    console.log("Game reset!");
+  }
 
   //MIDDLE OF CODE - FUNCTIONS
   let score = 0;
@@ -337,19 +348,7 @@ return fence4;
   }
 // Function to create a reset button goes here 
 
-function resetGame() {
-  // Reload the current scene
-  if (sceneData && sceneData.scene) {
-    // Dispose of the current scene and create a new one
-    sceneData.scene.dispose();
- 
 
-    // Recreate the scene elements (add back your ground, sphere, lights, etc.)
-   
-
-    console.log("Game reset!");
-  }
-}
 
 function createResetButton(scene: Scene) {
   const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -365,8 +364,9 @@ function createResetButton(scene: Scene) {
   resetButton.paddingRight = "10px";
 
   resetButton.onPointerUpObservable.add(() => {
-    // Call resetGame to reload the scene
-    resetGame();
+    setSceneIndex(0);
+    // Call your reset function here
+    //resetGame();
   });
 
   guiTexture.addControl(resetButton);
@@ -437,13 +437,24 @@ function createResetButton(scene: Scene) {
     that.importMesh = importPlayerMesh(that.scene, that.sphere, 0, 0);
     that.actionManager = actionManager(that.scene);
     const arenaWidth = 25; // Adjust this based on if you resize arena size
-  
+
     const leftGoalpostPosition = new Vector3(-0.05 * arenaWidth, 1, -0.45 * arenaWidth);
     const rightGoalpostPosition = new Vector3(0.05 * arenaWidth, 1, -0.45 * arenaWidth);
+    
   
     const leftGoalpost = createGoalpost(that.scene, leftGoalpostPosition);
     const rightGoalpost = createGoalpost(that.scene, rightGoalpostPosition);
     let goalScored = false;
+
+    const newGoalpost1Position = new Vector3(-leftGoalpostPosition.x, 1, -leftGoalpostPosition.z);
+    const newGoalpost2Position = new Vector3(-rightGoalpostPosition.x, 1, -rightGoalpostPosition.z);
+    
+    const newGoalpostWidth = 0.1;
+    const newGoalpostDepth = 0.1;
+
+    // creating the second goal post 
+    const newGoalpost1 = createGoalpost(that.scene, newGoalpost1Position);
+    const newGoalpost2 = createGoalpost(that.scene, newGoalpost2Position);
   
     // Check for goal between the posts
     that.scene.onBeforeRenderObservable.add(() => {
@@ -468,9 +479,8 @@ function createResetButton(scene: Scene) {
       alert("SCORE!!!!!! YA DANCER!!!");
     }
     
+//GUI SCORE 
 
-  
-    
     createResetButton(sceneData.scene);
     sceneData = { scene: new Scene(engine) };
     // resetButton.onPointerUpObservable.add(() => {

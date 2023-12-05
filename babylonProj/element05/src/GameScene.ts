@@ -36,15 +36,14 @@ import {
   import { AdvancedDynamicTexture, Button } from "@babylonjs/gui/2D";
   import { TextBlock } from "@babylonjs/gui";
   import * as GUI from "@babylonjs/gui";
-  let sceneData;
+  // let sceneData: { scene: any; };
   let score = 0;
- 
   let scoreText: TextBlock
   //----------------------------------------------------
   
   //----------------------------------------------------
   //Initialisation of Physics (Havok)
-  let initializedHavok;
+  let initializedHavok = {};
   HavokPhysics().then((havok) => {
     initializedHavok = havok;
   });
@@ -55,17 +54,7 @@ import {
 
   globalThis.HK = await HavokPhysics();
   //-----------------------------------------------------
-  function resetGame() {
-    // Reset the ball position
-    if (sceneData.sphere) {
-      sceneData.sphere.position = new Vector3(2, 2, 2); // Set the initial position
-    }
-    // MOVED CODE UP HERE BECAUSE MAKING IT GLOBAL WOULD HAVE MADE IT WORK IF IT WAS A THING THAT ACTUALLY WORKED EH ???? 
-    // Clear any goal-related flags
-    //goalScored = false;
-  
-    console.log("Game reset!");
-  }
+
 
   //MIDDLE OF CODE - FUNCTIONS
   
@@ -74,6 +63,15 @@ import {
   let walkingSpeed: number = 0.1;
   let runningSpeed: number = 0.4;
   
+    /**
+   * Imports the player mesh into the scene.
+   *
+   * @param {Scene} scene - The scene to import the mesh into.
+   * @param {Mesh} collider - The collider mesh.
+   * @param {number} x - The x coordinate.
+   * @param {number} y - The y coordinate.
+   * @return {any} The imported player mesh.
+   */
   function importPlayerMesh(scene: Scene, collider: Mesh, x: number, y: number) {
     let tempItem = { flag: false } 
     let item: any = SceneLoader.ImportMesh("", "./models/", "dummy3.babylon", scene, function(newMeshes, particleSystems, skeletons, animationGroups, ) {
@@ -141,9 +139,9 @@ import {
         }
 
         //collision
-        if (mesh.intersectsMesh(collider)) {
-          console.log("COLLIDED");
-        }
+        // if (mesh.intersectsMesh(collider)) {
+        //   console.log("COLLIDED");
+        // }
       });
 
       //physics collision
@@ -155,21 +153,42 @@ import {
     return item;
   }
   // GOAL POST 
-function createGoalpost(scene: Scene, position: Vector3): Mesh {
-    const goalpostHeight = 2;
-    const goalpostWidth = 0.1;
-    const goalpostColor = new Color3(1, 1, 1); // Adjust color as needed
+  function createGoalpost(scene: Scene, position: Vector3): Mesh {
+      const goalpostHeight = 2;
+      const goalpostWidth = 0.1;
+      const goalpostColor = new Color3(1, 1, 1); // Adjust color as needed
 
-    const goalpost = MeshBuilder.CreateBox("goalpost", { height: goalpostHeight, width: goalpostWidth, depth: goalpostWidth }, scene);
-    goalpost.position = position;
-    goalpost.material = new StandardMaterial("goalpostMaterial", scene);
-    goalpost.material.diffuseColor = goalpostColor;
+      const goalpost = MeshBuilder.CreateBox("goalpost", { height: goalpostHeight, width: goalpostWidth, depth: goalpostWidth }, scene);
+      goalpost.position = position;
+      goalpost.material = new StandardMaterial("goalpostMaterial", scene);
+      goalpost.material.diffuseColor = goalpostColor;
 
-    // Add physics to the goalpost if needed
-    const goalpostPhysics = new PhysicsAggregate(goalpost, PhysicsShapeType.BOX, { mass: 0 }, scene);
+      // Add physics to the goalpost if needed
+      const goalpostPhysics = new PhysicsAggregate(goalpost, PhysicsShapeType.BOX, { mass: 0 }, scene);
 
-    return goalpost;
-}
+      return goalpost;
+  }
+  /**
+   * Creates a goal volume mesh in the scene.
+   *
+   * @param {Scene} scene - The scene where the goal volume will be created.
+   * @param {string} name - The name of the goal volume mesh.
+   * @return {Mesh} The created goal volume mesh.
+   */
+  function createGoalVolume(scene: Scene, name: string): Mesh {
+    const goalVolume = MeshBuilder.CreateBox(name, { width: 2.5, depth: 0.1, height: 2 }, scene);
+    goalVolume.position = new Vector3(0, 0, -11.25);
+    goalVolume.isVisible = false;
+    goalVolume.checkCollisions = false;
+    const goalVolumePhysics = new PhysicsAggregate(goalVolume, PhysicsShapeType.BOX, { mass: 0 }, scene);
+    return goalVolume;
+  }
+  /**
+  * Creates and configures an action manager for the given scene.
+  *
+  * @param {Scene} scene - The scene to create the action manager for.
+  * @return {ActionManager} The created action manager.
+  */
   function actionManager(scene: Scene){
     scene.actionManager = new ActionManager(scene);
 
@@ -197,13 +216,30 @@ function createGoalpost(scene: Scene, position: Vector3): Mesh {
     const mat = new StandardMaterial("mat");
     const texture = new Texture("https://static.vecteezy.com/system/resources/thumbnails/007/686/503/small/black-and-white-panoramic-texture-football-background-ball-vector.jpg");
     mat.diffuseTexture = texture;
-    let sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 * scale });
+    let sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 * scale }, scene);
   
     sphere.position.x = x;
     sphere.position.y = y;
     sphere.position.z = z;
     sphere.material = mat;
+    sphere.checkCollisions = true;
     const sphereAggregate = new PhysicsAggregate(sphere, PhysicsShapeType.SPHERE, { mass: 1 }, scene);
+
+    sphere.actionManager = actionManager(scene);
+    sphere.actionManager.registerAction(
+      new ExecuteCodeAction(
+        {
+          trigger: ActionManager.OnIntersectionEnterTrigger,
+          parameter: scene.getMeshByName("homeGoalVolume")
+        },
+        function(evt) {
+          score++;
+          scoreText.text = `Score: ${score}`;
+          // const pos = new Vector3(2, 2, 2);
+          // sphere.translate(pos, 1, Space.WORLD);
+         }
+      )
+    );
     
     return sphere;
   }
@@ -221,7 +257,7 @@ function createGoalpost(scene: Scene, position: Vector3): Mesh {
 
     const groundAggregate = new PhysicsAggregate(ground, PhysicsShapeType.BOX, { mass: 0 }, scene);
     return ground;
-}
+  }
 
   //----------------------------------------------------------------------------------------------
   //Create Skybox
@@ -237,25 +273,35 @@ function createGoalpost(scene: Scene, position: Vector3): Mesh {
 	  skybox.material = skyboxMaterial;
     return skybox;
   }
-
+  /**
+   * Creates a fence in the scene.
+   *
+   * @param {Scene} scene - The scene in which the fence will be created.
+   * @return {Mesh} The created fence mesh.
+   */
   //fence around pitch
   function createFence1(scene: Scene) {
-        // Create a fence
-        const mat = new StandardMaterial("mat");
-        const texture = new Texture("https://ichef.bbci.co.uk/news/624/mcs/media/images/59704000/jpg/_59704491_compositeadvertswithburger.jpg");
-         mat.diffuseTexture = texture;
-        const fenceHeight = 1;
-        const fenceWidth = 0.1;
-        const fenceColor = new Color3(0.5, 0.5, 0.5);
+    // Create a fence
+    const mat = new StandardMaterial("mat");
+    const texture = new Texture("https://ichef.bbci.co.uk/news/624/mcs/media/images/59704000/jpg/_59704491_compositeadvertswithburger.jpg");
+      mat.diffuseTexture = texture;
+    const fenceHeight = 1;
+    const fenceWidth = 0.1;
+    const fenceColor = new Color3(0.5, 0.5, 0.5);
 
-        const fence1 = MeshBuilder.CreateBox("fence1", { height: fenceHeight, width: fenceWidth, depth: 25 }, scene);
-        fence1.position = new Vector3(-7.55, fenceHeight / 2, 0);
-        fence1.material = new StandardMaterial("fenceMaterial", scene);
-        fence1.material.diffuseColor = fenceColor;
-        const fence1Physics = new PhysicsAggregate(fence1, PhysicsShapeType.BOX, { mass: 0 }, scene);
+    const fence1 = MeshBuilder.CreateBox("fence1", { height: fenceHeight, width: fenceWidth, depth: 25 }, scene);
+    fence1.position = new Vector3(-7.55, fenceHeight / 2, 0);
+    fence1.material = new StandardMaterial("fenceMaterial", scene);
+    fence1.material.diffuseColor = fenceColor;
+    const fence1Physics = new PhysicsAggregate(fence1, PhysicsShapeType.BOX, { mass: 0 }, scene);
     return fence1;
   }
-
+  /**
+   * Create a fence 2.
+   *
+   * @param {Scene} scene - The scene to create the fence in.
+   * @return {Mesh} The created fence.
+   */
   function createFence2(scene: Scene) {
     // Create a fence
     const fenceHeight = 1;
@@ -267,41 +313,49 @@ function createGoalpost(scene: Scene, position: Vector3): Mesh {
     fence2.material = new StandardMaterial("fenceMaterial", scene);
     const fence2Physics = new PhysicsAggregate(fence2, PhysicsShapeType.BOX, { mass: 0 }, scene);
     fence2.material.diffuseColor = fenceColor;
-return fence2;
-}
+    return fence2;
+  }
+  /**
+   * Creates a fence in the scene.
+   *
+   * @param {Scene} scene - The scene in which the fence will be created.
+   * @return {Mesh} The created fence mesh.
+   */
+  function createFence3(scene: Scene) {
+    // Create a fence
+    const fenceHeight = 1;
+    const fenceWidth = 0.1;
+    const fenceColor = new Color3(0.5, 0.5, 0.5);
+    const fence3 = MeshBuilder.CreateBox("fence3", { height: fenceHeight, width: 15, depth: fenceWidth }, scene);
+    fence3.position = new Vector3(0, fenceHeight / 2, 12.55);
+    fence3.material = new StandardMaterial("fenceMaterial", scene);
+    const fence3Physics = new PhysicsAggregate(fence3, PhysicsShapeType.BOX, { mass: 0 }, scene);
+    fence3.material.diffuseColor = fenceColor;
 
-function createFence3(scene: Scene) {
-  // Create a fence
-  const fenceHeight = 1;
-  const fenceWidth = 0.1;
-  const fenceColor = new Color3(0.5, 0.5, 0.5);
-   
-  const fence3 = MeshBuilder.CreateBox("fence3", { height: fenceHeight, width: 15, depth: fenceWidth }, scene);
-  fence3.position = new Vector3(0, fenceHeight / 2, 12.55);
-  fence3.material = new StandardMaterial("fenceMaterial", scene);
-  const fence3Physics = new PhysicsAggregate(fence3, PhysicsShapeType.BOX, { mass: 0 }, scene);
-  fence3.material.diffuseColor = fenceColor;
+    return fence3;
+  }
+  /**
+   * Create a fence with the specified properties.
+   *
+   * @param {Scene} scene - The scene in which the fence will be created.
+   * @return {Mesh} The created fence mesh.
+   */
+  function createFence4(scene: Scene) {
+    // Create a fence
+    const fenceHeight = 1;
+    const fenceWidth = 0.1;
+    const fenceColor = new Color3(0.5, 0.5, 0.5);
 
-return fence3;
-}
-
-function createFence4(scene: Scene) {
-  // Create a fence
-  const fenceHeight = 1;
-  const fenceWidth = 0.1;
-  const fenceColor = new Color3(0.5, 0.5, 0.5);
-
-  const fence4 = MeshBuilder.CreateBox("fence4", { height: fenceHeight, width: 15, depth: fenceWidth }, scene);
-        fence4.position = new Vector3(0, fenceHeight / 2, -12.55);
-        fence4.material = new StandardMaterial("fenceMaterial", scene);
-        fence4.material.diffuseColor = fenceColor;
-        const fence4Physics = new PhysicsAggregate(fence4, PhysicsShapeType.BOX, { mass: 0 }, scene);
-return fence4;
-}
+    const fence4 = MeshBuilder.CreateBox("fence4", { height: fenceHeight, width: 15, depth: fenceWidth }, scene);
+    fence4.position = new Vector3(0, fenceHeight / 2, -12.55);
+    fence4.material = new StandardMaterial("fenceMaterial", scene);
+    fence4.material.diffuseColor = fenceColor;
+    const fence4Physics = new PhysicsAggregate(fence4, PhysicsShapeType.BOX, { mass: 0 }, scene);
+    return fence4;
+  }
 
 
-
-
+// LIGHT
   function createAnyLight(scene: Scene, index: number, px: number, py: number, pz: number, colX: number, colY: number, colZ: number, mesh: Mesh) {
     // only spotlight, point and directional can cast shadows in BabylonJS
     switch (index) {
@@ -328,77 +382,58 @@ return fence4;
         break;
     }
   }
- 
+ //LIGHT
   function createHemiLight(scene: Scene) {
     const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
     light.intensity = 0.8;
     return light;
   }
 
-
-
 // Function to increase the score
+  function createScoring(scene: Scene) {
+    const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
+    // Create the scoreText control
+    scoreText = new GUI.TextBlock();
+    scoreText.text = `Score: ${score}`;
+    scoreText.color = "white";
+    scoreText.fontSize = 36;
+    scoreText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    scoreText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    scoreText.paddingTop = "20px";
+    scoreText.paddingRight = "20px";
 
-// Function to create a reset button goes here 
-function createScoring(scene: Scene) {
-  const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    // Add the scoreText control to the advanced texture
+    advancedTexture.addControl(scoreText);
 
-  // Create the scoreText control
-  scoreText = new GUI.TextBlock();
-  scoreText.text = "Score: 0";
-  scoreText.color = "white";
-  scoreText.fontSize = 36;
-  scoreText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-  scoreText.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-  scoreText.paddingTop = "20px";
-  scoreText.paddingRight = "20px";
+  }
 
-  // Add the scoreText control to the advanced texture
-  advancedTexture.addControl(scoreText);
+  // Function to create a reset button goes here 
+  function createResetButton(scene: Scene) {
+    const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
-}
+    const resetButton = Button.CreateSimpleButton("resetButton", "Reset Game");
+    resetButton.width = "150px";
+    resetButton.height = "60px";
+    resetButton.color = "white";
+    resetButton.background = "green";
+    resetButton.verticalAlignment = 0; // Top
+    resetButton.horizontalAlignment = 0; // Right
+    resetButton.paddingTop = "10px";
+    resetButton.paddingRight = "10px";
 
-  // Function to increase the score
-function increaseScore(scoreText: GUI.TextBlock): void {
-  score ++;
-  scoreText.text = "Score: " + score;
-  console.log('Score: ' + score);
-}
+    resetButton.onPointerUpObservable.add(() => {
+      setSceneIndex(0);
+    });
 
-function createResetButton(scene: Scene) {
-  const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
-
-  const resetButton = Button.CreateSimpleButton("resetButton", "Reset Game");
-  resetButton.width = "150px";
-  resetButton.height = "40px";
-  resetButton.color = "white";
-  resetButton.background = "green";
-  resetButton.verticalAlignment = 0; // Top
-  resetButton.horizontalAlignment = 0; // Right
-  resetButton.paddingTop = "10px";
-  resetButton.paddingRight = "10px";
-
-  resetButton.onPointerUpObservable.add(() => {
-    setSceneIndex(0);
-    // Call your reset function here
-    //resetGame();
-  });
-
-  guiTexture.addControl(resetButton);
-}
-
-
-
-//function for reset button end here 
-  //PREVIOUS METHODS SHADOWS STILL WONT WORK 
-  // function createSpotLight(scene: Scene, px: number, py: number, pz: number) {
-  //   var light = new SpotLight("spotLight", new Vector3(-1, 1, -1), new Vector3(0, -1, 0), Math.PI / 2, 10, scene);
-  //   light.diffuse = new Color3(0.39, 0.44, 0.91);
-	//   light.specular = new Color3(0.22, 0.31, 0.79);
-  //   return light;
-  // }
-  
+    guiTexture.addControl(resetButton);
+  }
+    /**
+   * Creates an ArcRotateCamera object and returns it.
+   *
+   * @param {Scene} scene - The scene to associate the camera with.
+   * @return {ArcRotateCamera} The newly created ArcRotateCamera object.
+   */
   function createArcRotateCamera(scene: Scene) {
     let camAlpha = -Math.PI / 2,
       camBeta = Math.PI / 2.5,
@@ -421,14 +456,13 @@ function createResetButton(scene: Scene) {
   //----------------------------------------------------------
 
 
-  //BOTTOM OF CODE - MAIN RENDERING AREA FOR YOUR SCENE
+  //BOTTOM OF CODE - MAIN RENDERING AREA FOR  SCENE
   export default function createStartScene(engine: Engine) {
     interface SceneData {
       scene: Scene;
       sphere?: Mesh;
       ground?: Mesh;
       fence1?: Mesh;
-      
       fence2?: Mesh;
       fence3?: Mesh;
       fence4?: Mesh;
@@ -439,29 +473,33 @@ function createResetButton(scene: Scene) {
       hemisphericLight?: HemisphericLight;
       camera?: Camera;
     }
-    sceneData = { scene: new Scene(engine) };
-    let that: SceneData = { scene: new Scene(engine) };
-    that.scene.debugLayer.show();
+    // sceneData = { scene: new Scene(engine) };
+    let sceneData: SceneData = { scene: new Scene(engine) };
+    sceneData.scene.debugLayer.show();
     // Initialise physics
-    that.scene.enablePhysics(new Vector3(0, -9.8, 0), havokPlugin);
+    sceneData.scene.enablePhysics(new Vector3(0, -9.8, 0), havokPlugin);
+    sceneData.homeGoalVolume = createGoalVolume(sceneData.scene, "homeGoalVolume");
     //----------------------------------------------------------
+    //ball position 
+    sceneData.sphere = createSphere(sceneData.scene, 2, 2, 2, 0.5);
+    
+    //ground position 
+    sceneData.ground = createGround(sceneData.scene, 15, 25, Math.PI / 2);
   
-    that.sphere = createSphere(that.scene, 2, 2, 2, 0.5);
-    that.ground = createGround(that.scene, 15, 25, Math.PI / 2);
+    sceneData.ground.receiveShadows = true;
   
-    that.ground.receiveShadows = true;
-  
-    that.importMesh = importPlayerMesh(that.scene, that.sphere, 0, 0);
-    that.actionManager = actionManager(that.scene);
+    sceneData.importMesh = importPlayerMesh(sceneData.scene, sceneData.sphere, 0, 0);
+    sceneData.actionManager = actionManager(sceneData.scene);
     const arenaWidth = 25; // Adjust this based on if you resize arena size
 
     const leftGoalpostPosition = new Vector3(-0.05 * arenaWidth, 1, -0.45 * arenaWidth);
     const rightGoalpostPosition = new Vector3(0.05 * arenaWidth, 1, -0.45 * arenaWidth);
     
 
-    const leftGoalpost = createGoalpost(that.scene, leftGoalpostPosition);
-    const rightGoalpost = createGoalpost(that.scene, rightGoalpostPosition);
-    let goalScored = false;
+    const leftGoalpost = createGoalpost(sceneData.scene, leftGoalpostPosition);
+    const rightGoalpost = createGoalpost(sceneData.scene, rightGoalpostPosition);
+
+    
 
     const newGoalpost1Position = new Vector3(-leftGoalpostPosition.x, 1, -leftGoalpostPosition.z);
     const newGoalpost2Position = new Vector3(-rightGoalpostPosition.x, 1, -rightGoalpostPosition.z);
@@ -470,48 +508,31 @@ function createResetButton(scene: Scene) {
     const newGoalpostDepth = 0.1;
 
     // creating the second goal post 
-    const newGoalpost1 = createGoalpost(that.scene, newGoalpost1Position);
-    const newGoalpost2 = createGoalpost(that.scene, newGoalpost2Position);
-  
-    // Check for goal between the posts
-    
-    that.scene.onBeforeRenderObservable.add(() => {
-  if (that.sphere && !goalScored && isBallBetweenPosts(that.sphere, leftGoalpost, rightGoalpost)) {
-    increaseScore(scoreText); // Pass the scoreText variable to the increaseScore function
-  }
-});
-    // Function to check if the ball is between the goalposts
-    
-    function isBallBetweenPosts(ball: Mesh, leftPost: Mesh, rightPost: Mesh): boolean {
-      return (
-        ball.position.x > leftPost.position.x &&
-        ball.position.x < rightPost.position.x &&
-        Math.abs(ball.position.z - leftPost.position.z) < 1
-      );
-    }
-  
+    const newGoalpost1 = createGoalpost(sceneData.scene, newGoalpost1Position);
+    const newGoalpost2 = createGoalpost(sceneData.scene, newGoalpost2Position);
 
-
-//GUI SCORE 
+    //GUI SCORE 
     const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
-    let scoring = createScoring(that.scene);
+    let scoring = createScoring(sceneData.scene);
 
     //------------------- other shit
     createResetButton(sceneData.scene);
-    sceneData = { scene: new Scene(engine) };
-    that.skybox = createSkybox(that.scene);
+    // sceneData = { scene: new Scene(engine) };
+    sceneData.skybox = createSkybox(sceneData.scene);
     // Scene Lighting & Camera
-    that.hemisphericLight = createHemiLight(that.scene);
-    that.camera = createArcRotateCamera(that.scene);
+    sceneData.hemisphericLight = createHemiLight(sceneData.scene);
+    sceneData.camera = createArcRotateCamera(sceneData.scene);
 
     
     // Fence
-    that.fence1 = createFence1(that.scene);
-    that.fence2 = createFence2(that.scene);
-    that.fence3 = createFence3(that.scene);
-    that.fence4 = createFence4(that.scene);
+    sceneData.fence1 = createFence1(sceneData.scene);
+    sceneData.fence2 = createFence2(sceneData.scene);
+    sceneData.fence3 = createFence3(sceneData.scene);
+    sceneData.fence4 = createFence4(sceneData.scene);
 
-    return that;
+    return sceneData;
   }
+
+
   //----------------------------------------------------
   

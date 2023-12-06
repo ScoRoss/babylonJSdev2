@@ -59,6 +59,28 @@ import {
     return button;
     }
 
+    function createSceneResetButton(scene: Scene, name: string, index: string, x: string, y: string, advtex) {
+      var button = GUI.Button.CreateSimpleButton(name, index);
+      button.left = x;
+      button.top = y;
+      button.width = "160px"
+      button.height = "60px";
+      button.color = "white";
+      button.cornerRadius = 20;
+      button.background = "green";
+      const buttonClick = new Sound("MenuClickSFX", "./audio/menu-click.wav", scene, null, {
+        loop: false,
+        autoplay: false,
+      });
+      button.onPointerUpObservable.add(function() {
+        console.log("THE BUTTON HAS BEEN CLICKED");
+        buttonClick.play();
+        window.location.reload();
+      });
+      advtex.addControl(button);
+      return button;
+    }
+
 
   //----------------------------------------------------------------------------------------------
   //Create Skybox
@@ -157,6 +179,9 @@ import {
 
     let advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("myUI",true);
     let button1 = createSceneButton(that.scene, "but1", "START GAME", "0px", "-75px", advancedTexture);
+
+  
+    let button2 = createSceneResetButton(that.scene, "but2", "Reload Game", "0px", "60px", advancedTexture);
     //-------------------------------------
 
     that.skybox = createSkybox(that.scene);

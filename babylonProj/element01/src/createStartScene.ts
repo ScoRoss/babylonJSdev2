@@ -84,11 +84,14 @@ function createGround(scene: Scene) {
   }
 
   
-  function createLight(scene: Scene) {
+  function createLight(scene: Scene, mesh: Mesh) {
     const light = new DirectionalLight("dir01", new Vector3(-1, -2, -1), scene);
     light.position = new Vector3(10, 20, 10);
     light.shadowEnabled = true;
-
+    let shadowGenerator = new ShadowGenerator(1024, light);
+    shadowGenerator.addShadowCaster(mesh);
+    shadowGenerator.useExponentialShadowMap = true;
+ 
     return light;
   }
  
@@ -99,15 +102,11 @@ function createGround(scene: Scene) {
     var lightSphere = Mesh.CreateSphere("sphere", 10, 2, scene);
     lightSphere.material = mat;
     lightSphere.position = new Vector3(10, 20, 10);
+    
     return lightSphere;
   }
 
-  const CreateShadow = () => {
-    const shadowGen = new ShadowGenerator(1024, light);
 
-    this.torus.receiveShadows = true;
-    shadowGen.addShadowCaster(this.torus);
-  }
 
   function createTorus(scene: Scene, px: number, py: number, pz: number) {
     const mat = new StandardMaterial("mat");
@@ -156,6 +155,7 @@ function createGround(scene: Scene) {
     var light = new SpotLight("spotLight", new Vector3(-1, 1, -1), new Vector3(0, -1, 0), Math.PI / 2, 120, scene);
     light.diffuse = new Color3(1, 0, 0);
 	  light.specular = new Color3(0, 1, 0);
+    
     return light;
   }
 
@@ -222,8 +222,11 @@ function createGround(scene: Scene) {
   
     //createBox(scene, posX, posY, posZ, scalX, scalY, scalZ)
     that.box = createBox(that.scene, 2, 5, 3, 3, 2, 1);
+    that.box = createBox(that.scene, 2, 3, 3, 5, 2, 4);
     that.faceBox = createFacedBox(that.scene, 2, 2, 8)
-    that.light = createLight(that.scene);
+    that.faceBox = createFacedBox(that.scene, 6, 6, 8)
+    
+    
     //sun();
     that.torus = createTorus(that.scene, -30, 3, 3);
     that.lightSphere = createLightSphere(that.scene);
@@ -232,6 +235,7 @@ function createGround(scene: Scene) {
     that.sphere = createSphere(that.scene);
     that.ground = createGround(that.scene);
     that.camera = createArcRotateCamera(that.scene);
+    that.light = createLight(that.scene, that.box);
     return that;
   }
 

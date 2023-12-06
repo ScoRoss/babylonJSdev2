@@ -408,11 +408,11 @@ import {
 
   }
 
-  // Function to create a reset button goes here 
+  // Function to create a Menu Button. 
   function createResetButton(scene: Scene) {
     const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
-    const resetButton = Button.CreateSimpleButton("resetButton", "Reset Game");
+    const resetButton = Button.CreateSimpleButton("resetButton", "MenuButton");
     resetButton.width = "150px";
     resetButton.height = "60px";
     resetButton.color = "white";

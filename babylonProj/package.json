@@ -15,7 +15,9 @@
     "element03build": "tsc && vite build element03",
     "element03preview": "privew element03build",
     "element04build": "tsc && vite build element04",
-    "element04preview": "privew element04build"
+    "element04preview": "privew element04build",
+    "element05build": "tsc && vite build element05",
+    "element05preview": "privew element05build"
   },
   "devDependencies": {
     "typescript": "^5.0.2",
